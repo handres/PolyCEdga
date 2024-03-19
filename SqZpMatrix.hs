@@ -1,8 +1,15 @@
--- Author: Hunter Vallejos
--- Date: 02-15-2019
+{- |
+Module      :  SqZpMatrix
+Description :  <Matrix type with relevant functions>
+Copyright   :  (c) Hunter A. Vallejos
+License     :  N/A
 
+Maintainer  :  <hunterandresvallejos@gmail.com>
+Stability   :  experimental
+Portability :  non-portable (depends on ZpInt (custom module))
 
--- SqZpMatrix is a matrix of ZpInt's with the main purpose of this module being Gaussian elimination and kernel calculation.
+<SqZpMatrix is a matrix of ZpInt's with the main purpose of this module being Gaussian elimination and kernel calculation. Here, p must be prime.>
+-}
 
 module SqZpMatrix where
 import Data.Maybe
@@ -32,11 +39,11 @@ instance Show SqZpMatrix where
 ----                            Matrix Functions                            ----
 --------------------------------------------------------------------------------
 
--- Constructs a SqZpMatrix given a 2D array of ints and desired modulus
+-- | Constructs a SqZpMatrix given a 2D array of ints and desired modulus
 buildMatrix :: [[Int]] -> Int -> SqZpMatrix
 buildMatrix matrix_data p = SqZpMatrix [[ZpInt (entry `mod` p) p | entry <- row] | row <- matrix_data]
 
--- Perform Gaussian elimination until matrix is in reduced echelon form with indexes for pivot columns
+-- | Perform Gaussian elimination until matrix is in reduced echelon form with indexes for pivot columns
 rref :: SqZpMatrix -> (SqZpMatrix, [Int])
 rref matrix = let
     matrix_data = getMatrixData matrix
@@ -120,11 +127,11 @@ rref matrix = let
     (SqZpMatrix final_matrix_data, pivot_cols)
 
 
--- Returns (num_rows, num_cols)
+-- | Returns (num_rows, num_cols)
 dimensions :: SqZpMatrix -> (Int, Int)
 dimensions matrix = (length $ getMatrixData matrix, length $ ((getMatrixData matrix) !! 0))
 
--- Transposes a matrix
+-- | Transposes a matrix
 sqTranspose :: SqZpMatrix -> SqZpMatrix
 sqTranspose matrix = let
     transpose m
@@ -134,7 +141,7 @@ sqTranspose matrix = let
     SqZpMatrix (transpose $ getMatrixData matrix)
 
 
--- Calculates the kernel, or nullspace, of a ZpInt Matrix
+-- | Calculates the kernel, or nullspace, of a ZpInt Matrix
 nullspace :: SqZpMatrix -> [[ZpInt]]
 nullspace matrix = let
     zero :: ZpInt
@@ -187,11 +194,11 @@ nullspace matrix = let
 ----                            Matrix Tests                                ----
 --------------------------------------------------------------------------------
 
-testMatrix1 :: SqZpMatrix
-testMatrix1 = buildMatrix [[1, 2, 3], [4, 5, 6], [7, 8, 9]] 5
+-- testMatrix1 :: SqZpMatrix
+-- testMatrix1 = buildMatrix [[1, 2, 3], [4, 5, 6], [7, 8, 9]] 5
 
-testMatrix2 :: SqZpMatrix
-testMatrix2= buildMatrix [[0, 0, 3], [0, 0, 0], [0, 0, 0]] 11
+-- testMatrix2 :: SqZpMatrix
+-- testMatrix2= buildMatrix [[0, 0, 3], [0, 0, 0], [0, 0, 0]] 11
 
-testMatrix3 :: SqZpMatrix
-testMatrix3= buildMatrix [[0, 0, 4], [4, 0, 0], [0, 0, -1]] 5
+-- testMatrix3 :: SqZpMatrix
+-- testMatrix3= buildMatrix [[0, 0, 4], [4, 0, 0], [0, 0, -1]] 5

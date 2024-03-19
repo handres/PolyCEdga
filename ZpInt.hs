@@ -1,12 +1,28 @@
+{- |
+Module      :  ZpInt
+Description :  <Modular Arithmetic type of prime p>
+Copyright   :  (c) Hunter A. Vallejos
+License     :  N/A
+
+Maintainer  :  <hunterandresvallejos@gmail.com>
+Stability   :  experimental
+Portability :  portable
+
+<Modular Arithmetic type of prime p>
+-}
+
 module ZpInt where
 
 import Data.List
 import Data.Maybe
 -- MODULUS MUST BE PRIME!!
-data ZpInt = ZpInt {value :: Int, modulus :: Int} deriving(Eq) -- ZpInt i1 i2 = i1 (mod i2)
+data ZpInt = ZpInt {value :: Int, modulus :: Int} -- ZpInt i1 i2 = i1 (mod i2)
+
+instance Eq ZpInt where
+    i1 == i2 = ((modulus i1) == (modulus i2)) && ((value $ abs i1) == (value $ abs i2))
 
 instance Num ZpInt where
-    -- Add two ZpInts
+    -- | Add two ZpInts
     i1 + i2 
         -- Cannot add different modulus ZpInts
         | (modulus i1) /= (modulus i2) = error ("Cannot add incompatible ZpInts: modulus does not match.")
@@ -15,6 +31,7 @@ instance Num ZpInt where
         -- Add values and take first modulus
         | otherwise = ZpInt (((value i1) + (value i2)) `mod` (modulus i1)) (modulus i1)
 
+    -- | Multiply two ZpInts
     i1 * i2
         -- Cannot multiply different modulus ZpInts
         | (modulus i1) /= (modulus i2) = error ("Cannot multiply incompatible ZpInts: modulus does not match.")
@@ -23,7 +40,7 @@ instance Num ZpInt where
         -- Multiply values and take first modulus
         | otherwise = ZpInt (((value i1) * (value i2)) `mod` (modulus i1)) (modulus i1)
 
-    -- Return the positive value for a given modulus. This is not abs (value)!
+    -- | Return the positive value for a given modulus. This is not abs (value)!
     abs i = let
         v = value i
         m = modulus i
@@ -38,15 +55,15 @@ instance Num ZpInt where
     -- Not implemented
     fromInteger i = error ("Cannot convert from integer. Please use ZpInt (fromInteger int) (modulus).")
 
--- Displays ZpInt as "value (mod modulus)"
 instance Show ZpInt where
+    -- | Displays ZpInt as "value (mod modulus)"
     show i = let 
         reduced = reduce i
         in
         (show $ value $ reduced) ++ " (mod " ++ (show $ modulus reduced) ++ ")"
 
 
--- a `divide` b = the element of Zp which when multiplied by b equals a
+-- | a `divide` b = the element of Zp which when multiplied by b equals a
 infix 7 `divide`
 divide :: ZpInt -> ZpInt -> ZpInt
 divide i1 i2 = let
@@ -65,7 +82,7 @@ divide i1 i2 = let
     else
         divisor
 
--- Takes value modulo the modulus
+-- | Takes value modulo the modulus
 reduce :: ZpInt -> ZpInt
 reduce i = let
     v = value i

@@ -1,3 +1,17 @@
+{- |
+Module      :  ZpExpression
+Description :  <Utility module holding various useful general functions>
+Copyright   :  (c) Hunter A. Vallejos
+License     :  N/A
+
+Maintainer  :  <hunterandresvallejos@gmail.com>
+Stability   :  experimental
+Portability :  non-portable (dependencies on custom modules)
+
+<Module containing all of the relevant algebraic manipulations to expressions, such as addition, division, substitution, etc. ZpExpression requires coefficients to be of the ZpInt type.>
+-}
+
+
 module ZpExpression where
 
 -- IMPORTANT!!!! Expressions are taken mod 2 -- i.e. Expressions take coefficients in Z/2Z.
@@ -14,85 +28,54 @@ import ZpInt
 type Term = [String]
 -- data Expression = Expression {coefficients :: [ZpInt], terms :: [Term]}
 data Expression = Expression [ZpInt] [Term]
-data Differential = Differential {getDiffPairs :: [(Expression, Expression)]}
 
---------------------------------------------------------------------------------
-----                           Term Functions                               ----
---------------------------------------------------------------------------------
--- termFromString :: String -> Term
--- termFromString string = if '+' `elem` string then error ("Cannot create term: Bad form (+)") else splitOn ['*'] string
-
--- Creates an expression from a single term and a modulus
-expressionFromTerm :: Term -> Int -> Expression
-expressionFromTerm t m = Expression [ZpInt 1 m] [t] 
---------------------------------------------------------------------------------
-----                        Differential Functions		                    ----
---------------------------------------------------------------------------------
-instance Show Differential where
-    show (Differential pairs) = let
-        m = getExprModulus $ snd $ head $ pairs
-        getDiffString pair = (show $ fst pair) ++ " -> " ++ (show $ snd pair)
-        printString p
-            | length p == 0 = ""
-            | length p == 1 = getDiffString (head p)
-            | otherwise = (getDiffString (head p)) ++ "\n" ++ (printString (tail p))
-        in
-        printString pairs
-
-getFroms :: Differential -> [Expression]
-getFroms (Differential pairs) = map fst pairs
-
-getTos :: Differential -> [Expression]
-getTos (Differential pairs) = map snd pairs
-
-differentialFromStrings :: Int -> [(String, String)] -> Differential
-differentialFromStrings m list = Differential $ map (\(e1, e2) -> (expressionFromString e1 m, expressionFromString e2 m)) list
+-- TODO: Make a type called Laurent Coefficient
+-- TODO: Abstract the type Expression so that it deals with arbitrary instances of Num
 
 --------------------------------------------------------------------------------
 ----                         Expression Functions                           ----
 --------------------------------------------------------------------------------
 
--- Gets coefficients of expression
+-- | Gets coefficients of expression
 coefficients :: Expression -> [ZpInt]
 coefficients (Expression cs ts) = cs
 
--- Gets terms of expression
+-- | Gets terms of expression
 terms :: Expression -> [Term]
 terms (Expression cs ts) = ts
 
--- Gets list of pairs of (coeff, term) from expression
+-- | Gets list of pairs of (coeff, term) from expression
 getCoeffTermPairs :: Expression -> [(ZpInt, Term)]
 getCoeffTermPairs (Expression cs1 ts1) = zip cs1 ts1
 
--- Calculates the number of terms in an expression
+-- | Calculates the number of terms in an expression
 numTerms :: Expression -> Int
 numTerms = length . coefficients
 
--- Gets the coefficient of a given term in an expression. Returns -1 mod -1 if no coefficient is found 
+-- | Gets the coefficient of a given term in an expression. Returns -1 mod -1 if no coefficient is found 
 getTermCoeffInExpression :: Term -> Expression -> ZpInt
 getTermCoeffInExpression term expr = let
     index = getTermIndex term expr
     in
     if index == -1 then error ("Term not found in expression!") else ((coefficients expr) !! index)
 
--- Gets the index of a given term in an expression
+-- | Gets the index of a given term in an expression
 getTermIndex :: Term -> Expression -> Int
 getTermIndex term expr = fromMaybe (-1) $ findIndex (==term) $ terms expr
 
--- Tells whether or not a certain term is in an expression
--- WARNING: This checks for the entire term. For example, termInExpr "q1" "q1*q2" = FALSE but termInExpr "q1" "q1+q2" = TRUE
+-- | Tells whether or not a certain term is in an expression. WARNING: This checks for the entire term. For example, termInExpr "q1" "q1*q2" = FALSE but termInExpr "q1" "q1+q2" = TRUE
 termInExpr :: Term -> Expression -> Bool
 termInExpr t expr = t `elem` (terms expr)
 
--- Gets modulus of the coefficient of the first term
+-- | Gets modulus of the coefficient of the first term
 getExprModulus :: Expression -> Int
 getExprModulus (Expression cs ts) = if length cs > 0 then modulus $ head cs else 0
 
--- Gets the first term in an Expression and returns it as its own expression
+-- | Gets the first term in an Expression and returns it as its own expression
 headExpr :: Expression -> Expression
 headExpr (Expression cs ts) = Expression [(head cs)] [(head ts)]
 
--- Returns the expression minus the first term
+-- | Returns the expression minus the first term
 tailExpr :: Expression -> Expression
 tailExpr (Expression cs ts) = Expression (tail cs) (tail ts)
 
@@ -208,7 +191,7 @@ instance Show Expression where
 
 
 
--- Converts a string of the form "q1*q2 + 2*q3*3" into (Expression [1, 6] [["q1", "q2"], ["q3"]]) and reduced given modulus
+-- | Converts a string of the form "q1*q2 + 2*q3*3" into (Expression [1, 6] [["q1", "q2"], ["q3"]]) and reduced given modulus
 expressionFromString :: String -> Int -> Expression
 expressionFromString string modulus = let
     getAddStr = splitOn ['+']
@@ -227,8 +210,7 @@ expressionFromString string modulus = let
     if string == "0" then (Expression [] []) else foldl (+) (Expression [] []) [Expression [fst z] [snd z] | z <- zs, (value $ fst z) /= 0] -- So as to eliminate duplicate terms
 
 
--- Substitutes corresponding terms with given expressions (a homomorphism-type map with [Term] -> [Expression])
--- First attempts to substitute entire terms. If such fails, substitute single elements of each term one by one.
+-- | Substitutes corresponding terms with given expressions (a homomorphism-type map with [Term] -> [Expression]). First attempts to substitute entire terms. If such fails, substitute single elements of each term one by one.
 substitute :: [Term] -> [Expression] -> Expression -> Expression
 substitute ts es e = let
     pairs = zip ts es
@@ -256,48 +238,7 @@ substitute ts es e = let
     in
     foldl (+) (Expression [] []) (zipWith (*) multipliers new_exprs)
 
-
--- WARNING: Can only differentiate single elements. If you want to differentiate in multi-element terms linearly, use diff_linear. Otherwise, use substitute.
-diff :: Differential -> Expression -> Expression
-diff (Differential pairs) expr
-    | numTerms expr == 0 = expr
-    | numTerms expr == 1 = let
-        c = head $ coefficients expr
-        t = head $ terms expr
-        one = ZpInt 1 (modulus c)
-
-        -- List of from's and to's in the differntials
-        from_terms = map (head . terms . fst) pairs
-        to_exprs = map snd pairs
-
-        -- Differentiate a single element given the index of that element
-        diffElement index = substitute (["~"] : from_terms) ((Expression [] []) : to_exprs) $ Expression [c] [[t !! index]]
-
-        -- Differentiate a given index in a term
-        getIndexDiff index = (Expression [one] [first_part]) * (diffElement index) * (Expression [one] [last_part]) where
-            first_part = let
-                possible_first_part = fst $ splitAt (index) (t)
-                in
-                if possible_first_part == [] then ["~"] else possible_first_part
-            last_part = let
-                possible_last_part = snd $ splitAt (index+1) (t)
-                in
-                if possible_last_part == [] then ["~"] else possible_last_part
-        in
-        if length t == 1 then substitute (["~"] : from_terms) ((Expression [] []) : to_exprs) expr
-        else foldl1 (+) $ map (getIndexDiff) [0..(length t)-1]
-    | otherwise = (diff (Differential pairs) (headExpr expr)) + (diff (Differential pairs) (tailExpr expr))
-
--- Differentiates but only linearly, meaning no chain-rule! This can handle multiple terms.
--- Purpose of this function is to double-check that d^2 = 0 in a polynomial DGA
--- diff_linear :: Differential -> Expression -> Expression
--- diff_linear (Differential pairs) expr = let
---     from_terms = map fst pairs
---     to_exprs = map snd pairs
---     in
---     substitute from_terms to_exprs expr
-
--- Restricts expression to terms of given length
+-- | Restricts expression to terms of given length
 restrictTermLen :: Expression -> Int -> Expression
 restrictTermLen (Expression cs ts) maxlen = let 
     answer = filter (\(c, t) -> length t <= maxlen) (zip cs ts)
@@ -305,47 +246,3 @@ restrictTermLen (Expression cs ts) maxlen = let
     answerts = map snd answer
     in
     if length answer == 0 then Expression [] [] else Expression answercs answerts
-
-
---------------------------------------------------------------------------------
-----                                Tests                                   ----
---------------------------------------------------------------------------------
-
-test1 :: Expression
-test1 = expressionFromString "q1 + 2*q2 + 3*q3" 13
-
-test2 :: Expression
-test2 = expressionFromString "-1*q1 + -2*q2 + -3*q3" 13
-
-test3 :: Expression
-test3 = expressionFromString "q1 + q2" 13
-
-test4 :: Expression
-test4 = expressionFromString "q1 + -1*q2" 13
-
-test5 :: Expression
-test5 = expressionFromString "" 13
-
-test6 :: Expression
-test6 = expressionFromString "13*q1" 13
-
-test7 :: Expression
-test7 = expressionFromString "2 + 3" 13
-
-test8 :: Expression
-test8 = substitute [["q1"]] [expressionFromString "q1+q2" 13] (expressionFromString "1 + q1*q2" 13)
-
-test9 :: Expression
-test9 = substitute [["q1", "q2"], ["q2"]] [expressionFromString "3*q1+q2" 13, expressionFromString "q3" 13] (expressionFromString "1 + 3*q1*q2 + q2" 13)
-
-test10 :: Expression
-test10 = expressionFromString "3*q1*q2*q3 + 4*q3" 13
-
-test_d1 :: Differential
-test_d1 = differentialFromStrings 13
-                                    [
-                                    ("q1", "q1 + q2"),
-                                    ("q2", "2*q3"),
-                                    ("q3", "q4")
-                                    ]
-
