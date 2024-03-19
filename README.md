@@ -14,7 +14,7 @@ To compute homology, one needs to first construct a DGA object, which is done us
 
 The ```buildDGA``` builds a DGA given the modulus, an array of gradings, and an array of pairs of Strings, where the first String is a generator and the second String is the image of the generator under the boundary map of the DGA.
 
-The ```buildDGA``` function builds parses this information into a data type DGA.
+The ```buildDGA``` function parses this information into a data type DGA.
 
 Once one has a DGA ```A```, one can perform ```polyHomologies A k ``` to compute the kth polynomial contact homology.
 
